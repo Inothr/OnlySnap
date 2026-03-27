@@ -19,6 +19,7 @@ import base64
 import logging
 import asyncio
 import webbrowser
+import html
 from datetime import date
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from colorama import init, Fore, Style
@@ -39,8 +40,8 @@ DMR_DIR = os.path.join(BASE_DIR, "dmr")
 DEBUG_MODE = False 
 DEBUG_FILE = os.path.join(DMR_DIR, "debug.log")
 
-CURRENT_VERSION = "1.0.4"
-GITHUB_RAW_URL = "https://raw.githubusercontent.com/jordon31/OnlySnap/main/OnlySnap.py"
+CURRENT_VERSION = "1.0.5"
+GITHUB_CHANGELOG_URL = "https://raw.githubusercontent.com/jordon31/OnlySnap/main/CHANGELOG.md"
 
 if system == "Windows":
     ffmpeg_fname = "ffmpeg.exe"
@@ -104,23 +105,31 @@ class DownloadManager:
             assure_dir("Profiles/" + PROFILE)
             assure_dir("Profiles/" + PROFILE + "/Public")
             
-            # Dump info
+            # Dump info with clean
+            raw_about = PROFILE_INFO.get("about") or ""
+            clean_about = re.sub(r'<[^>]+>', ' ', raw_about)
+            clean_about = html.unescape(clean_about)
+            clean_about = re.sub(r'\s+', ' ', clean_about).strip()
+
             sinf = {
-                "id": PROFILE_INFO["id"],
-                "name": PROFILE_INFO["name"],
-                "username": PROFILE_INFO["username"],
-                "about": PROFILE_INFO.get("about"),
+                "id": PROFILE_INFO.get("id"),
+                "name": PROFILE_INFO.get("name"),
+                "username": PROFILE_INFO.get("username"),
+                "about": clean_about if clean_about else None,
                 "joinDate": PROFILE_INFO.get("joinDate"),
-                "website": PROFILE_INFO.get("website")
+                "website": PROFILE_INFO.get("website"),
+                "location": PROFILE_INFO.get("location")
             }
-            try: sinf["joinDate"] = datetime.datetime.strptime(sinf["joinDate"], "%Y-%m-%dT%H:%M:%S+00:00").strftime("%Y-%m-%d")
-            except: pass
+            
+            if sinf.get("joinDate"):
+                try: 
+                    sinf["joinDate"] = datetime.datetime.strptime(sinf["joinDate"], "%Y-%m-%dT%H:%M:%S+00:00").strftime("%Y-%m-%d")
+                except: 
+                    pass
+            sinf = {k: v for k, v in sinf.items() if v is not None}
+
             with open(f"Profiles/{PROFILE}/Dump.json", 'w', encoding='utf-8') as f:
                 json.dump(sinf, f, ensure_ascii=False, indent=4)
-
-            check_and_update_profile_cache(PROFILE_ID)
-            download_public_files()
-            count_public = new_files 
 
             stories_list = []
             if not self.stop_requested:
@@ -451,12 +460,17 @@ class DownloadManager:
                                 cf_cookies
                             ))
 
-                for f in as_completed(futures):
-                    try:
-                        if f.result(): 
-                            new_files += 1
-                            on_file_dl()
-                    except: pass
+                drm_skipped_count = 0
+
+            for f in as_completed(futures):
+                try:
+                    result = f.result()
+                    if result == "DRM_FAILED":
+                        drm_skipped_count += 1
+                    elif result == True: 
+                        new_files += 1
+                        on_file_dl()
+                except: pass
 
             # --- FINISH ---
             progress_callback(total_global_files, total_global_files, "Completed")
@@ -469,6 +483,12 @@ class DownloadManager:
                 self.log("SYNC COMPLETED.")
                 self.log(f"- Total files scanned: {total_global_files}")
                 self.log(f"- New files downloaded: {new_files}")
+            
+            # --- AGGIUNGI IL MESSAGGIO QUI ---
+            if drm_skipped_count > 0:
+                self.log(f"⚠️ SKIPPED {drm_skipped_count} DRM VIDEOS.")
+                self.log("Key server is busy or offline. They will be downloaded next time.")
+                
             self.log("------------------------------------------------")
 
         except Exception as e:
@@ -737,13 +757,13 @@ class OnlySnapTUI(App):
     def check_updates(self):
         try:
             self.log_msg(f"Checking for updates (Current: v{CURRENT_VERSION})...")
-            response = requests.get(GITHUB_RAW_URL, timeout=5)
+            response = requests.get(GITHUB_CHANGELOG_URL, timeout=5)
             
             if response.status_code == 200:
-                match = re.search(r'CURRENT_VERSION\s*=\s*[\'"]([^\'"]+)[\'"]', response.text)
+                match = re.search(r'##\s*\[([^\]]+)\]', response.text)
                 
                 if match:
-                    remote_version = match.group(1)
+                    remote_version = match.group(1).strip()
                     if remote_version != CURRENT_VERSION:
                         self.log_msg(f"[!] NEW UPDATE AVAILABLE: v{remote_version}")
                         self.log_msg(f"[!] Download at: https://github.com/jordon31/OnlySnap")
@@ -751,7 +771,7 @@ class OnlySnapTUI(App):
                     else:
                         self.log_msg("You have the latest version.")
                 else:
-                    self.log_msg("Could not verify remote version.")
+                    self.log_msg("Could not verify remote version from Changelog.")
             else:
                 self.log_msg("Failed to connect to GitHub.")
         except Exception as e:
@@ -1445,8 +1465,10 @@ def download_drm_video(mpd_url, output_path, output_name, post_id, cookies_overr
     # Check server for keys
     if pssh and post_id:
         keys = get_widevine_keys(pssh, clean_name, post_id, cookies_override, is_chat)
-    elif not post_id:
-        log_debug("ERROR: Missing Post ID")
+    #drm failed log
+    if not keys:
+        log_debug("Skipped DRM video: No keys retrieved from server.")
+        return "DRM_FAILED"
 
     cmd = [
         DOWNLOADER_EXE, 
@@ -1461,11 +1483,8 @@ def download_drm_video(mpd_url, output_path, output_name, post_id, cookies_overr
         "--no-log"
     ]
 
-    if keys:
-        for k in keys.split():
-            cmd.extend(["--key", k])
-    else:
-        log_debug("WARNING: Downloading WITHOUT keys (File will be encrypted)")
+    for k in keys.split():
+        cmd.extend(["--key", k])
 
     cmd.extend(["-H", f"User-Agent: {API_HEADER['User-Agent']}"])
     
@@ -1683,10 +1702,13 @@ def download_media(media, is_archived, path=None, timestamp=None, is_stream=Fals
                 except: pass
     
     assure_dir(os.path.dirname(final_path))
-    
+        
     success = False
     if is_drm:
-        if download_drm_video(source, final_path, file_base_name, post_id, specific_cookies, is_chat):
+        drm_result = download_drm_video(source, final_path, file_base_name, post_id, specific_cookies, is_chat)
+        if drm_result == "DRM_FAILED":
+            return "DRM_FAILED" 
+        elif drm_result == True:
             new_files += 1
             success = True
     else:

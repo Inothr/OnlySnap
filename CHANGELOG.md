@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.5] - 2026-03-27
+
+### Fixed
+- **DRM Handling:** Prevented the script from saving corrupted/unplayable .mp4 files when the key server is offline. The script now safely skips these files and will retry them on the next run without throwing errors.
+- **Dump Json:** Improved
+- **New Site**  Patreon integration so the file structure will change (next update)
+
+--------------------------------------------
 ## [1.0.4] - 2026-03-13
 
 ### Fixed 

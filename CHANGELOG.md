@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [1.0.5] - 2026-03-27
 
 ### Fixed
-- **DRM Handling:** Prevented the script from saving corrupted/unplayable .mp4 files when the key server is offline. The script now safely skips these files and will retry them on the next run without throwing errors.
+- **DRM Handling:** Prevented the script from saving corrupted/unplayable .mp4 files when the key server is offline. The script now safely skips these files. Because no broken file is saved, the script will naturally try to download them again the next time you sync that specific creator.
 - **Dump Json:** Improved
 - **New Site:**  Patreon integration so the file structure will change (next update)
 

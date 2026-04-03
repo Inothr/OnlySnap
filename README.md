@@ -1,83 +1,119 @@
-**Yoooo**
- 
-This project was **COOKED**. Deadass forgotten for 3 years. But I locked in, cracked a Monster, and rewrote the whole thing.
+# OnlySnap
 
-We ain't using basic scripts anymore. We got a **TUI** (Terminal User Interface).
+> Fork of [jordon31/OnlySnap](https://github.com/jordon31/OnlySnap) with automated login and dependency management.
 
-**Check this out:** No more sweating over `cmd` commands or typing manual inputs.
-You can letterally **CLICK** on stuff now.
+A **TUI** (Terminal User Interface) tool for OnlyFans content downloading. No command-line knowledge needed, just click and download.
 
-It's stupid easy. Other tools out there require a PhD in coding to run; mine is built different. **EZ.** No complex garbage, just click and download.
+## What's changed from the original
 
-## HOW TO START (video for fast)
+- **Automated login:** Replaced manual cookie extraction (F12, DevTools, copy-paste headers) with an automated Chrome login window.
+- **Isolated Chrome instance:** The login opens a separate Chrome profile that doesn't touch the user's personal browser data.
+- **Automatic dependency detection:** The app checks for missing tools (N_m3u8DL-RE, mp4decrypt, ffmpeg) on startup and offers to download and install them automatically.
+- **Removed `cookie-onlyfans.py`:** No longer needed since login is handled automatically.
 
-`.bat` for fast
+---
 
-1.  **Python 3.10+** required.
-2.  Install requirements: `pip install -r requirements.txt` (Now includes **Pillow** for the Watermark magic).
-3.  Click `!run.bat`.
-4.  Video: [tutorial](https://youtu.be/5tMwjg5hXNY)
+## Requirements
+
+- **Python 3.10+**
+- **Google Chrome** installed (required for the automated login)
+- **Pillow** (included in `requirements.txt`, required for watermarks)
+- Install dependencies: `pip install -r requirements.txt`
+
+### Platform support
+
+| Platform | Status |
+| --- | --- |
+| **Linux** | ✅ Tested |
+| **Windows** | ⚠️ Should work, not fully tested yet |
+| **macOS** | ⚠️ Should work, not fully tested yet |
+
+---
+
+## HOW TO START
+
+1. Run `!run.bat` (Windows) or `python OnlySnap.py` (Linux/Mac)
 
 ### THE LAUNCHER
 
-Inside `!run.bat` you have 2 options. Don't mess this up.
+Inside `!run.bat`:
 
-* **[1] START ONLYSNAP:**
-    * Opens the main app.
-* **[2] AUTO-PASTE (DO THIS FIRST!):**
-    * Go to Browser -> F12 -> Network -> Click on "Fetch/XHR" -> chat api for no miss nothing. [chats](https://onlyfans.com/my/chats)
-    * Copy the headers/request.
-  
-    *  ![Screenshot Cookies](https://i.postimg.cc/TwS30f62/Screenshot-2026-02-09-021826.png)
-    
-    * Run Option 2. The script **yeets** the cookies straight into the config. No manual copy-paste struggle.
+* **[1] START ONLYSNAP** — Opens the main app.
+* **[2] INSTALL DRM TOOLS** — Downloads FFmpeg, mp4decrypt and N_m3u8DL-RE into the `dmr` folder.
 
 ---
 
-## ⚙️ SETTINGS (STOP EDITING JSON FILES)
+## 🔐 AUTOMATED LOGIN
 
-You don't need to touch `Config.json` like a caveman anymore. 
+No more manual cookie extraction. Here's how it works:
 
-Inside the app, there is a **[SETTINGS]** button. Click it.
-**BIG NEWS:** Everything you change is **AUTO-SAVED IN REAL-TIME**. No "Save" button, no "I forgot to click apply". You type, it saves. Period.
+1. Click the **Login** button inside the app.
+2. An isolated Chrome window opens (separate from your personal browser).
+3. Log in to OnlyFans normally from that window.
+4. Once logged in, the app captures the cookies automatically in the background.
+5. The Chrome window closes and the session is saved. Ready to use.
 
-| Setting | Translation for Dummies |
+If a saved session already exists, the app asks if you want to replace it with a new one.
+
+🎥 **Login Demo:** 
+
+
+
+
+
+https://github.com/user-attachments/assets/7f336ee4-343f-4278-a657-f6703e664abb
+
+
+
+
+
+## 🔧 AUTOMATIC DEPENDENCY INSTALLATION
+
+On startup, the app checks if the following tools are present:
+
+| Tool | What it does |
 | --- | --- |
-| **Custom Filename** | Add your branding (es. `@MyChannel`). Leave empty for original IDs. |
-| **Watermark Text** | Type your text. It adds a sleek, dynamic watermark on every photo. |
-| **Month Names** | `true` = "January", `false` = Numbers. Aesthetic choice. |
-| **No Year Folders** | If `true`, it dumps everything in one place. Chaotic evil. |
-| **Skip Highlights Covers** | Saves space. Who looks at covers anyway? |
-| **Disable Text Files** | `true` = Only Media. `false` = Includes a `.txt` with the post caption. |
-| **Download Tagged** | Downloads SPAM/ADS (#ad). Keep it `false` unless you love commercials. |
-| **Workers (Threads)** | Speed. Default is 5. High values = Fast, but don't fry your CPU. |
+| **N_m3u8DL-RE** | Downloads encrypted video streams |
+| **mp4decrypt** | Decrypts DRM-protected media |
+| **ffmpeg** | Media processing and conversion |
+
+If any are missing, a screen appears offering to download and install them automatically into the `dmr` folder. Downloads are pulled directly from the official sources for each platform.
 
 ---
 
-## ⚠️ ATTENTION: FILENAME LOGIC
+## ⚙️ SETTINGS
 
-Read this or don't complain later.
-The script checks if a file exists by its **Name**.
+Settings are managed directly from the app using the **[SETTINGS]** button. No need to manually edit `Config.json`. All changes are **auto-saved in real-time**.
 
-* If you set a **Custom Filename Prefix** (e.g., `MyStore_12345.jpg`), the script saves it like that.
-* If you later **DELETE** the prefix or change it, the script will look for `12345.jpg`, won't find it, and **WILL DOWNLOAD EVERYTHING AGAIN**.
+| Setting | Description |
+| --- | --- |
+| **Custom Filename** | Add a prefix to filenames. Leave empty for original IDs. |
+| **Watermark Text** | Adds a dynamic watermark on every photo. |
+| **Month Names** | `true` = month names, `false` = numbers. |
+| **No Year Folders** | `true` = all files in one folder. |
+| **Skip Highlights Covers** | Skips highlight cover images. |
+| **Disable Text Files** | `true` = only media, `false` = includes `.txt` with post caption. |
+| **Download Tagged** | Downloads SPAM/AD posts. Default `false`. |
+| **Workers (Threads)** | Download speed. Default is 5. |
+
+---
+
+## ⚠️ FILENAME LOGIC
+
+The script checks if a file exists by its **name**. If a **Custom Filename Prefix** is set and later removed, files will be re-downloaded because the expected filename changes.
+
 ---
 
 ## 📸 SMART WATERMARK
 
-We added a high-end **Auto-Marker** for photos.
-
-* **Dynamic Sizing:** It detects the photo resolution and adapts the text size so it's never too big or too small.
-* **Elegant Design:** White text, subtle shadow, and a semi-transparent dark background in the bottom-left corner.
-* **How to use:** Just put your text in Settings. If you want a specific vibe, drop your favorite `.ttf` font into the main folder.
+Automatic watermark system for photos with dynamic sizing based on resolution. White text with subtle shadow on a semi-transparent background. Custom `.ttf` fonts can be placed in the main folder.
 
 ---
 
 ## 🔧 EXTRAS
 
 * **Telegram:** [https://t.me/OnlySnap0](https://t.me/OnlySnap0)
-* **Credits:** Me. I built this while you were sleeping.
-* **Bugs:** It works on my machine. (any problem / suggestion open issues)
-* **Disclaimer:** For educational purposes only (wink wink).
+* **Bugs / Suggestions:** Open an issue.
+* **Disclaimer:** For educational purposes only.
 
 OnlyFans Scrape - Scrape OnlyFans
